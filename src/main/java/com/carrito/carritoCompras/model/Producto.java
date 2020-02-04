@@ -7,18 +7,24 @@ import javax.persistence.Id;
 import javax.persistence.PrimaryKeyJoinColumn;
 
 @Entity
-public class Productos {
+public class Producto {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	@PrimaryKeyJoinColumn
-	private Long id;
+	private Long productId;
 	private String description;
 	private double unit_price;
 	private Long stock;
-	public Long getId() {
-		return id;
+	
+	public Producto() {}
+	public Producto(String description, double unit_price, Long stock) {
+		
+		this.description = description;
+		this.unit_price = unit_price;
+		this.stock = stock;
 	}
+	
 	public String getDescription() {
 		return description;
 	}
@@ -28,8 +34,12 @@ public class Productos {
 	public Long getStock() {
 		return stock;
 	}
-	public void setId(Long id) {
-		this.id = id;
+	
+	public Long getProductId() {
+		return productId;
+	}
+	public void setProductId(Long productId) {
+		this.productId = productId;
 	}
 	public void setDescription(String description) {
 		this.description = description;

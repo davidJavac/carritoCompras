@@ -1,12 +1,16 @@
 package com.carrito.carritoCompras.model;
 
-import java.util.ArrayList;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.PrimaryKeyJoinColumn;
+
+import com.carrito.carritoCompras.dto.ProductDTO;
 
 @Entity
 public class Cart {
@@ -14,16 +18,21 @@ public class Cart {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	@PrimaryKeyJoinColumn
-	private Long id;
+	private Long cartId;
 	private String fullName;
 	private String email;
 	private java.util.Date creationDate;
-	private ArrayList<Productos> products;
+	@OneToMany(cascade = CascadeType.MERGE)
+	private Set<CartProduct> products;
 	private double total;
 	private String status;
 	
-	public Long getId() {
-		return id;
+	
+	public Long getCartId() {
+		return cartId;
+	}
+	public void setCartId(Long cartId) {
+		this.cartId = cartId;
 	}
 	public String getFullName() {
 		return fullName;
@@ -37,7 +46,7 @@ public class Cart {
 	public java.util.Date getCreationDate() {
 		return creationDate;
 	}
-	public ArrayList<Productos> getProducts() {
+	public Set<CartProduct> getProducts() {
 		return products;
 	}
 	public double getTotal() {
@@ -46,16 +55,14 @@ public class Cart {
 	public String getStatus() {
 		return status;
 	}
-	public void setId(Long id) {
-		this.id = id;
-	}
+	
 	public void setFullName(String fullName) {
 		this.fullName = fullName;
 	}
 	public void setCreationDate(java.util.Date creationDate) {
 		this.creationDate = creationDate;
 	}
-	public void setProducts(ArrayList<Productos> products) {
+	public void setProducts(Set<CartProduct> products) {
 		this.products = products;
 	}
 	public void setTotal(double total) {
