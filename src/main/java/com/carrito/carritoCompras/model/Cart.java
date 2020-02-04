@@ -1,19 +1,20 @@
 package com.carrito.carritoCompras.model;
 
+import java.io.Serializable;
 import java.util.Set;
 
-import javax.persistence.CascadeType;
+import javax.persistence.Embeddable;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
 import javax.persistence.PrimaryKeyJoinColumn;
+import javax.persistence.Transient;
 
 import com.carrito.carritoCompras.dto.ProductDTO;
 
 @Entity
-public class Cart {
+public class Cart  implements Serializable{
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
@@ -22,8 +23,9 @@ public class Cart {
 	private String fullName;
 	private String email;
 	private java.util.Date creationDate;
-	@OneToMany(cascade = CascadeType.MERGE)
-	private Set<CartProduct> products;
+	//@OneToMany(cascade = CascadeType.MERGE)
+	@Transient
+	private Set<ProductDTO> products;
 	private double total;
 	private String status;
 	
@@ -46,7 +48,7 @@ public class Cart {
 	public java.util.Date getCreationDate() {
 		return creationDate;
 	}
-	public Set<CartProduct> getProducts() {
+	public Set<ProductDTO> getProducts() {
 		return products;
 	}
 	public double getTotal() {
@@ -62,7 +64,7 @@ public class Cart {
 	public void setCreationDate(java.util.Date creationDate) {
 		this.creationDate = creationDate;
 	}
-	public void setProducts(Set<CartProduct> products) {
+	public void setProducts(Set<ProductDTO> products) {
 		this.products = products;
 	}
 	public void setTotal(double total) {
