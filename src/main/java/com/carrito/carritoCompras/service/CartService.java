@@ -3,6 +3,7 @@ package com.carrito.carritoCompras.service;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.carrito.carritoCompras.dto.ProductDTO;
 import com.carrito.carritoCompras.model.BusinessException;
 import com.carrito.carritoCompras.model.Cart;
+import com.carrito.carritoCompras.model.CartDTO;
 import com.carrito.carritoCompras.model.CartProduct;
 import com.carrito.carritoCompras.model.Producto;
 import com.carrito.carritoCompras.model.ResponseTransfer;
@@ -20,7 +22,7 @@ import com.carrito.carritoCompras.repository.CartRepository;
 import com.carrito.carritoCompras.repository.ProductRepository;
 
 @Service
-public class CartService {
+public class CartService implements CartObserver{
 
 	@Autowired
 	private CartRepository cartRepository;
@@ -102,9 +104,114 @@ public class CartService {
 		throw new BusinessException("No se ha podido eliminar el producto", null);
 	}
 	
-	public Optional<ResponseTransfer<Set<Producto>>> getProductos(String id) throws BusinessException{
+	public Optional<ResponseTransfer<Set<Producto>>> getProductos(Long id) throws BusinessException{
+		
+		if(this.getSetProducto(id).isPresent())
+			this.getSetProducto(id).get();
+		throw new BusinessException("No existe el carro de compra solicitado", null);
+	}
+
+	public Optional<ResponseTransfer<CartDTO<Long>>> getCarritoArmado(String id) throws BusinessException{
 		
 		Optional<Cart> optionalCart =cartRepository.findById(Long.parseLong(id));
+		
+		if(optionalCart.isPresent()) {
+			
+			Cart cart = optionalCart.get();
+			Set<CartProduct> cartProduct = cartProductRepository.
+					allCartProduct(optionalCart.get()); 
+			Set<Long> setIdsProducts = cartProduct.stream().map(e -> e.getProducto().getProductId())
+					.collect(Collectors.toSet());
+			CartDTO<Long> cartDTO = new CartDTO<Long>();
+			cartDTO.setCartId(cart.getCartId());
+			cartDTO.setCreationDate(cart.getCreationDate());
+			cartDTO.setEmail(cart.getEmail());
+			cartDTO.setFullName(cart.getFullName());
+			cartDTO.setProducts(setIdsProducts);
+			cartDTO.setStatus(cart.getStatus());
+			double total = cartProduct.stream().mapToDouble(e -> e.getUnit_price() * e.getQuantity()).sum(); 
+			cartDTO.setTotal(total);
+			
+			return Optional.of(new ResponseTransfer<CartDTO<Long>>("Carro de compra armado", cartDTO));
+		}
+		throw new BusinessException("No existe el carro de compra solicitado", null);
+	}
+	
+	public Optional<ResponseTransfer<Object>> checkOut(String id) throws BusinessException{
+		
+		Optional<Cart> optionalCart =cartRepository.findById(Long.parseLong(id));
+		
+		if(optionalCart.isPresent()) {
+			
+			Cart cartFetch = optionalCart.get();
+			cartFetch.setStatus("READY");
+			
+			cartRepository.save(cartFetch);
+			
+			return Optional.of(new ResponseTransfer<Object>("Carro de compra modificado a status READY", null));
+			
+		}
+		throw new BusinessException("No existe el carro de compra solicitado", null);
+		
+	}
+	
+	private ProductDTO castDTO(CartProduct cartProduct) {
+		
+		return new ProductDTO(cartProduct.getProducto().getProductId(), 
+				cartProduct.getUnit_price(), cartProduct.getQuantity());
+	}
+	
+	private Optional<Producto> castProducto(CartProduct cartProduct) {
+		
+		Optional<Producto> optionalProducto = productRepository.findById(cartProduct.getProducto().getProductId());
+		if(optionalProducto.isPresent())
+			return optionalProducto;
+		return optionalProducto.empty();
+
+	}
+
+	@Override
+	public void update(Long id) throws BusinessException{
+		// TODO Auto-generated method stub
+		Optional<Cart> optionalCart =cartRepository.findById(id);
+		
+		if(optionalCart.isPresent()) {
+			
+			Cart cartFetch = optionalCart.get();
+			Set<CartProduct> cartProduct = cartProductRepository.
+					allCartProduct(cartFetch); 
+			
+			if(cartProduct.stream().allMatch(e -> checkStock(e))) {
+				
+				cartFetch.setStatus("PROCESSED");				
+			}
+			else
+				cartFetch.setStatus("FAILED");
+			
+
+			cartRepository.save(cartFetch);
+			
+		}
+		throw new BusinessException("El carro de compra solicitado no existe", null);
+		
+	}
+
+	public boolean checkStock(CartProduct cartProduct){
+		
+		Long id = cartProduct.getCart().getCartId();
+		if(this.getSetProducto(id).isPresent()) {
+			
+			Set<Producto> setProducto = this.getSetProducto(id).get().getEntity();
+			
+			return setProducto.stream().filter(e -> e.getProductId() == cartProduct.getProducto().getProductId())
+					.allMatch(e -> e.getStock() >= cartProduct.getQuantity());
+		}
+		return false;
+	}
+	
+	public Optional<ResponseTransfer<Set<Producto>>> getSetProducto(Long id){
+		
+		Optional<Cart> optionalCart =cartRepository.findById(id);
 		
 		if(optionalCart.isPresent()) {
 			
@@ -114,47 +221,6 @@ public class CartService {
 			
 			return Optional.of(new ResponseTransfer<Set<Producto>>("Lista de productos del carro de compra ", setProducto));
 		}
-		throw new BusinessException("No existe el carro de compra solicitado", null);
+		return Optional.empty();
 	}
-
-	public Optional<ResponseTransfer<Cart>> getCarritoArmado(String id) throws BusinessException{
-		
-		Optional<Cart> optionalCart =cartRepository.findById(Long.parseLong(id));
-		
-		if(optionalCart.isPresent()) {
-			
-			Set<Long> setIdsProducts = cartProductRepository.
-					allCartProduct(optionalCart.get()).stream().map(e -> e.getProducto().getProductId())
-					.collect(Collectors.toSet());
-			
-			return Optional.of(new ResponseTransfer<Set<Producto>>("Lista de productos del carro de compra ", setProducto));
-		}
-		throw new BusinessException("No existe el carro de compra solicitado", null);
-	}
-	
-	
-	public ProductDTO castDTO(CartProduct cartProduct) {
-		
-		return new ProductDTO(cartProduct.getProducto().getProductId(), 
-				cartProduct.getUnit_price(), cartProduct.getQuantity());
-	}
-	
-	public Optional<Producto> castProducto(CartProduct cartProduct) {
-		
-		Optional<Producto> optionalProducto = productRepository.findById(cartProduct.getProducto().getProductId());
-		if(optionalProducto.isPresent())
-			return optionalProducto;
-		return optionalProducto.empty();
-
-	}
-
-	public Optional<Long> castIdProducts(CartProduct cartProduct) {
-		
-		Optional<Long> optionalIdProducto = productRepository.findById(cartProduct.getProducto().getProductId());
-		if(optionalProducto.isPresent())
-			return optionalProducto;
-		return optionalProducto.empty();
-		
-	}
-
 }

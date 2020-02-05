@@ -12,12 +12,14 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.carrito.carritoCompras.model.BusinessException;
 import com.carrito.carritoCompras.model.Cart;
+import com.carrito.carritoCompras.model.CartDTO;
 import com.carrito.carritoCompras.model.Producto;
 import com.carrito.carritoCompras.model.ResponseTransfer;
 import com.carrito.carritoCompras.model.SolicitudCarrito;
@@ -77,7 +79,7 @@ public class CartController {
 	@GetMapping("/carts/{id}/products")
 	public ResponseEntity<ResponseTransfer<Set<Producto>>> getProductos(@PathVariable("id") String id) throws BusinessException{
 		
-		Optional<ResponseTransfer<Set<Producto>>> optionalResponse = cartService.getProductos(id);
+		Optional<ResponseTransfer<Set<Producto>>> optionalResponse = cartService.getProductos(Long.parseLong(id));
 		
 		if(optionalResponse.isPresent())
 			return new ResponseEntity<>(optionalResponse.get(), HttpStatus.OK);
@@ -87,9 +89,21 @@ public class CartController {
 	}
 
 	@GetMapping("/carts/{id}")
-	public ResponseEntity<ResponseTransfer<Set<Producto>>> getCarritoArmado(@PathVariable("id") String id) throws BusinessException{
+	public ResponseEntity<ResponseTransfer<CartDTO<Long>>> getCarritoArmado(@PathVariable("id") String id) throws BusinessException{
 		
-		Optional<ResponseTransfer<Set<Producto>>> optionalResponse = cartService.getCarritoArmado(id);
+		Optional<ResponseTransfer<CartDTO<Long>>> optionalResponse = cartService.getCarritoArmado(id);
+		
+		if(optionalResponse.isPresent())
+			return new ResponseEntity<>(optionalResponse.get(), HttpStatus.OK);
+		else
+			return new ResponseEntity<>(optionalResponse.get(), HttpStatus.INTERNAL_SERVER_ERROR);
+		
+	}
+
+	@PutMapping("/carts/{id}/checkout")
+	public ResponseEntity<ResponseTransfer<Object>> check(@PathVariable("id") String id) throws BusinessException{
+		
+		Optional<ResponseTransfer<Object>> optionalResponse = cartService.checkOut(id);
 		
 		if(optionalResponse.isPresent())
 			return new ResponseEntity<>(optionalResponse.get(), HttpStatus.OK);
