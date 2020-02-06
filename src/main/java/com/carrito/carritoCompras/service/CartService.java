@@ -1,9 +1,14 @@
 package com.carrito.carritoCompras.service;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +27,7 @@ import com.carrito.carritoCompras.repository.CartRepository;
 import com.carrito.carritoCompras.repository.ProductRepository;
 
 @Service
-public class CartService implements CartObserver{
+public class CartService{
 
 	@Autowired
 	private CartRepository cartRepository;
@@ -31,6 +36,25 @@ public class CartService implements CartObserver{
 	@Autowired
 	private ProductRepository productRepository;
 	
+	private Logger logger = Logger.getLogger("Log checkout");
+	private FileHandler fh;
+	
+	public CartService() {
+		
+		/*try {
+			fh = new FileHandler("\\log\\logCheckout.log", true);
+			fh = new FileHandler("%h\\carritoCompras\\log\\logCheckout.log", true);
+			logger.addHandler(fh);
+			SimpleFormatter formatter = new SimpleFormatter();  
+	        fh.setFormatter(formatter);
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+	}
 	
 	public Optional<ResponseTransfer<Cart>> crearCart(Cart carrito) throws BusinessException{
 		
@@ -170,9 +194,9 @@ public class CartService implements CartObserver{
 
 	}
 
-	@Override
-	public void update(Long id) throws BusinessException{
-		// TODO Auto-generated method stub
+	
+	public void update(Long id){
+	
 		Optional<Cart> optionalCart =cartRepository.findById(id);
 		
 		if(optionalCart.isPresent()) {
@@ -185,18 +209,21 @@ public class CartService implements CartObserver{
 				
 				cartFetch.setStatus("PROCESSED");				
 			}
-			else
+			else {
+				
 				cartFetch.setStatus("FAILED");
+				logger.log(Level.SEVERE, "No hay stock disponible para el carro de compra " + id);
+				//logger.info("No hay stock disponible para el carro de compra " + id);
+			}
 			
-
 			cartRepository.save(cartFetch);
-			
+			System.out.println("id " + cartFetch.getCartId());
+			System.out.println("status " + cartFetch.getStatus());
 		}
-		throw new BusinessException("El carro de compra solicitado no existe", null);
 		
 	}
 
-	public boolean checkStock(CartProduct cartProduct){
+	private boolean checkStock(CartProduct cartProduct){
 		
 		Long id = cartProduct.getCart().getCartId();
 		if(this.getSetProducto(id).isPresent()) {
@@ -209,7 +236,7 @@ public class CartService implements CartObserver{
 		return false;
 	}
 	
-	public Optional<ResponseTransfer<Set<Producto>>> getSetProducto(Long id){
+	private Optional<ResponseTransfer<Set<Producto>>> getSetProducto(Long id){
 		
 		Optional<Cart> optionalCart =cartRepository.findById(id);
 		
