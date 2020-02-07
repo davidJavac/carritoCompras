@@ -18,7 +18,10 @@ public class HandleEvent {
 	@Scheduled(fixedRate = 10000)
 	public void verifyCarts() {
 		
-		cartRepository.findAll().parallelStream().forEach(e -> {cartService	.update(e.getCartId());});
+		EventService eventService = new EventService();
+		cartService.accept(eventService);
+		
+		cartRepository.findAll().parallelStream().forEach(e -> {eventService.update(e);});
 		
 	}
 }

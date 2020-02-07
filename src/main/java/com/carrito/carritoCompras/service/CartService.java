@@ -27,7 +27,7 @@ import com.carrito.carritoCompras.repository.CartRepository;
 import com.carrito.carritoCompras.repository.ProductRepository;
 
 @Service
-public class CartService{
+public class CartService implements VisitEvent{
 
 	@Autowired
 	private CartRepository cartRepository;
@@ -36,25 +36,20 @@ public class CartService{
 	@Autowired
 	private ProductRepository productRepository;
 	
-	private Logger logger = Logger.getLogger("Log checkout");
-	private FileHandler fh;
 	
-	public CartService() {
-		
-		/*try {
-			fh = new FileHandler("\\log\\logCheckout.log", true);
-			fh = new FileHandler("%h\\carritoCompras\\log\\logCheckout.log", true);
-			logger.addHandler(fh);
-			SimpleFormatter formatter = new SimpleFormatter();  
-	        fh.setFormatter(formatter);
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
+	public CartRepository getCartRepository() {
+		return cartRepository;
 	}
+
+	public CartProductRepository getCartProductRepository() {
+		return cartProductRepository;
+	}
+
+	public ProductRepository getProductRepository() {
+		return productRepository;
+	}
+
+	public CartService() {}
 	
 	public Optional<ResponseTransfer<Cart>> crearCart(Cart carrito) throws BusinessException{
 		
@@ -131,7 +126,7 @@ public class CartService{
 	public Optional<ResponseTransfer<Set<Producto>>> getProductos(Long id) throws BusinessException{
 		
 		if(this.getSetProducto(id).isPresent())
-			this.getSetProducto(id).get();
+			return Optional.of(this.getSetProducto(id).get());
 		throw new BusinessException("No existe el carro de compra solicitado", null);
 	}
 
@@ -193,50 +188,8 @@ public class CartService{
 		return optionalProducto.empty();
 
 	}
-
 	
-	public void update(Long id){
-	
-		Optional<Cart> optionalCart =cartRepository.findById(id);
-		
-		if(optionalCart.isPresent()) {
-			
-			Cart cartFetch = optionalCart.get();
-			Set<CartProduct> cartProduct = cartProductRepository.
-					allCartProduct(cartFetch); 
-			
-			if(cartProduct.stream().allMatch(e -> checkStock(e))) {
-				
-				cartFetch.setStatus("PROCESSED");				
-			}
-			else {
-				
-				cartFetch.setStatus("FAILED");
-				logger.log(Level.SEVERE, "No hay stock disponible para el carro de compra " + id);
-				//logger.info("No hay stock disponible para el carro de compra " + id);
-			}
-			
-			cartRepository.save(cartFetch);
-			System.out.println("id " + cartFetch.getCartId());
-			System.out.println("status " + cartFetch.getStatus());
-		}
-		
-	}
-
-	private boolean checkStock(CartProduct cartProduct){
-		
-		Long id = cartProduct.getCart().getCartId();
-		if(this.getSetProducto(id).isPresent()) {
-			
-			Set<Producto> setProducto = this.getSetProducto(id).get().getEntity();
-			
-			return setProducto.stream().filter(e -> e.getProductId() == cartProduct.getProducto().getProductId())
-					.allMatch(e -> e.getStock() >= cartProduct.getQuantity());
-		}
-		return false;
-	}
-	
-	private Optional<ResponseTransfer<Set<Producto>>> getSetProducto(Long id){
+	public Optional<ResponseTransfer<Set<Producto>>> getSetProducto(Long id){
 		
 		Optional<Cart> optionalCart =cartRepository.findById(id);
 		
@@ -249,5 +202,11 @@ public class CartService{
 			return Optional.of(new ResponseTransfer<Set<Producto>>("Lista de productos del carro de compra ", setProducto));
 		}
 		return Optional.empty();
+	}
+
+	@Override
+	public void accept(Visitor visitor) {
+		// TODO Auto-generated method stub
+		visitor.visit(this);
 	}
 }
